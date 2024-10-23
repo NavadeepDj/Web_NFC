@@ -1,74 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NFC Attendance System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Attendance System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        #startButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <h1>NFC Attendance System</h1>
-  <p id="status">Waiting for NFC scan...</p>
-  <p id="regNumber">Registration Number: <span id="regNum"></span></p>
+    <h1>NFC Attendance System</h1>
+    <button id="startButton">Start NFC Scan</button>
+    <p id="status" class="status">Click the button to start NFC scanning</p>
+    <p id="regNumber">Registration Number: <span id="regNum"></span></p>
 
-  <script>
-    if ('NDEFReader' in window) {
-      const ndef = new NDEFReader();
+    <script>
+        const statusElement = document.getElementById("status");
+        const regNumElement = document.getElementById("regNum");
+        const startButton = document.getElementById("startButton");
 
-      // Start NFC scan
-      ndef.scan().then(() => {
-        document.getElementById("status").textContent = "Scan started. Tap your ID card.";
-        console.log("NFC scan started successfully.");
-
-        ndef.onreadingerror = () => {
-          document.getElementById("status").textContent = "Cannot read NFC tag. Try again.";
-          console.log("Error reading NFC tag.");
-        };
-
-        ndef.onreading = (event) => {
-          console.log("NFC tag detected.");
-
-          const message = event.message;
-          let regNumber = "";
-
-          // Loop through records and look for the registration number in 'text' type
-          for (const record of message.records) {
-            console.log("Record type: " + record.recordType);
-            
-            if (record.recordType === "text") {
-              const textDecoder = new TextDecoder(record.encoding);
-              regNumber = textDecoder.decode(record.data);
-              document.getElementById("regNum").textContent = regNumber;
-
-              // Update status
-              document.getElementById("status").textContent = `Registration Number ${regNumber} detected.`;
-
-              // TODO: Optional - Add to database (Make an API call or store locally)
-              // Example: sendRegistrationNumberToDatabase(regNumber);
+        async function startNFCScanning() {
+            if (!('NDEFReader' in window)) {
+                statusElement.textContent = "NFC not supported on this device.";
+                statusElement.className = "status error";
+                return;
             }
-          }
-        };
 
-      }).catch(error => {
-        document.getElementById("status").textContent = `Error! NFC scan failed: ${error}`;
-        console.error("Error! NFC scan failed to start:", error);
-      });
-    } else {
-      document.getElementById("status").textContent = "NFC not supported on this device.";
-    }
+            try {
+                // First, request NFC permissions
+                const permissionStatus = await navigator.permissions.query({ name: "nfc" });
+                
+                if (permissionStatus.state === "denied") {
+                    statusElement.textContent = "NFC permission denied. Please enable NFC permissions in your browser settings.";
+                    statusElement.className = "status error";
+                    return;
+                }
 
-    // Optional function to send data to a server or database
-    function sendRegistrationNumberToDatabase(regNumber) {
-      fetch('your-database-endpoint', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ regNumber })
-      })
-      .then(response => response.json())
-      .then(data => console.log('Success:', data))
-      .catch(error => console.error('Error:', error));
-    }
-  </script>
+                const ndef = new NDEFReader();
+                
+                // Start NFC scan
+                await ndef.scan();
+                statusElement.textContent = "NFC scan started. Tap your ID card.";
+                statusElement.className = "status success";
+                console.log("NFC scan started successfully.");
+
+                ndef.addEventListener("reading", (event) => {
+                    console.log("NFC tag detected.");
+                    const message = event.message;
+                    
+                    for (const record of message.records) {
+                        console.log("Record type:", record.recordType);
+                        
+                        if (record.recordType === "text") {
+                            const textDecoder = new TextDecoder(record.encoding);
+                            const regNumber = textDecoder.decode(record.data);
+                            regNumElement.textContent = regNumber;
+                            
+                            statusElement.textContent = `Registration Number ${regNumber} detected!`;
+                            statusElement.className = "status success";
+                            
+                            // Optional: Send to database
+                            // sendRegistrationNumberToDatabase(regNumber);
+                        }
+                    }
+                });
+
+                ndef.addEventListener("readingerror", () => {
+                    statusElement.textContent = "Cannot read NFC tag. Try again.";
+                    statusElement.className = "status error";
+                    console.log("Error reading NFC tag.");
+                });
+
+            } catch (error) {
+                console.error("Error starting NFC:", error);
+                if (error.name === "NotAllowedError") {
+                    statusElement.textContent = "NFC permission denied. Please allow NFC access and try again.";
+                } else if (error.name === "NotSupportedError") {
+                    statusElement.textContent = "NFC is not supported or enabled on this device.";
+                } else {
+                    statusElement.textContent = `Error starting NFC: ${error.message}`;
+                }
+                statusElement.className = "status error";
+            }
+        }
+
+        // Add click event listener to the start button
+        startButton.addEventListener("click", startNFCScanning);
+
+        // Optional: Function to send data to server
+        function sendRegistrationNumberToDatabase(regNumber) {
+            fetch('your-database-endpoint', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ regNumber })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Success:', data))
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
 </body>
 </html>
