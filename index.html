@@ -42,11 +42,10 @@
         <div id="recentScans"></div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Import Firebase SDK -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
         // Your Firebase configuration
         const firebaseConfig = {
@@ -62,7 +61,6 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const analytics = getAnalytics(app);
 
         // DOM Elements
         const statusElement = document.getElementById("status");
@@ -73,12 +71,24 @@
         // Function to save attendance to Firebase
         async function saveAttendance(regNumber) {
             try {
-                const docRef = await addDoc(collection(db, "Students_S13"), {
+                alert("Attempting to save registration number:", regNumber);
+                
+                // Create a timestamp to use as document ID
+                const timestamp = new Date().getTime();
+                const docId = `${regNumber}_${timestamp}`;
+                
+                // Create the document reference
+                const attendanceRef = doc(db, "Students_S13", docId);
+                
+                // Set the document data
+                await setDoc(attendanceRef, {
                     registrationNumber: regNumber,
                     timestamp: serverTimestamp(),
                     date: new Date().toLocaleDateString(),
                     time: new Date().toLocaleTimeString()
                 });
+
+                alert("Successfully saved document with ID:", docId);
                 
                 // Update status and recent scans
                 statusElement.textContent = `Registration Number ${regNumber} saved successfully!`;
@@ -89,11 +99,10 @@
                 scanEntry.textContent = `${regNumber} - ${new Date().toLocaleTimeString()}`;
                 recentScans.insertBefore(scanEntry, recentScans.firstChild);
                 
-                console.log("Document written with ID: ", docRef.id);
                 return true;
             } catch (error) {
-                console.error("Error adding document: ", error);
-                statusElement.textContent = "Error saving to database. Please try again.";
+                console.error("Detailed error saving to Firebase:", error);
+                statusElement.textContent = `Database Error: ${error.message}`;
                 statusElement.className = "status error";
                 return false;
             }
@@ -132,8 +141,14 @@
                             const regNumber = textDecoder.decode(record.data);
                             regNumElement.textContent = regNumber;
                             
-                            // Save to Firebase
-                            await saveAttendance(regNumber);
+                            // Save to Firebase with error logging
+                            try {
+                                await saveAttendance(regNumber);
+                            } catch (error) {
+                                console.error("Error in NFC reading event:", error);
+                                statusElement.textContent = `Error: ${error.message}`;
+                                statusElement.className = "status error";
+                            }
                         }
                     }
                 });
