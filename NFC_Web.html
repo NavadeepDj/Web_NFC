@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFC Attendance System</title>
+</head>
+<body>
+  <h1>NFC Attendance System</h1>
+  <p id="status">Waiting for NFC scan...</p>
+  <p id="regNumber">Registration Number: <span id="regNum"></span></p>
+
+  <script>
+    if ('NDEFReader' in window) {
+      const ndef = new NDEFReader();
+
+      // Start NFC scan
+      ndef.scan().then(() => {
+        document.getElementById("status").textContent = "Scan started. Tap your ID card.";
+        console.log("NFC scan started successfully.");
+
+        ndef.onreadingerror = () => {
+          document.getElementById("status").textContent = "Cannot read NFC tag. Try again.";
+          console.log("Error reading NFC tag.");
+        };
+
+        ndef.onreading = (event) => {
+          console.log("NFC tag detected.");
+
+          const message = event.message;
+          let regNumber = "";
+
+          // Loop through records and look for the registration number in 'text' type
+          for (const record of message.records) {
+            console.log("Record type: " + record.recordType);
+            
+            if (record.recordType === "text") {
+              const textDecoder = new TextDecoder(record.encoding);
+              regNumber = textDecoder.decode(record.data);
+              document.getElementById("regNum").textContent = regNumber;
+
+              // Update status
+              document.getElementById("status").textContent = `Registration Number ${regNumber} detected.`;
+
+              // TODO: Optional - Add to database (Make an API call or store locally)
+              // Example: sendRegistrationNumberToDatabase(regNumber);
+            }
+          }
+        };
+
+      }).catch(error => {
+        document.getElementById("status").textContent = `Error! NFC scan failed: ${error}`;
+        console.error("Error! NFC scan failed to start:", error);
+      });
+    } else {
+      document.getElementById("status").textContent = "NFC not supported on this device.";
+    }
+
+    // Optional function to send data to a server or database
+    function sendRegistrationNumberToDatabase(regNumber) {
+      fetch('your-database-endpoint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ regNumber })
+      })
+      .then(response => response.json())
+      .then(data => console.log('Success:', data))
+      .catch(error => console.error('Error:', error));
+    }
+  </script>
+</body>
+</html>
