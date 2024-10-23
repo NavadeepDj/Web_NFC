@@ -23,12 +23,32 @@
             font-size: 16px;
             margin: 20px 0;
             cursor: pointer;
-        }
-        #scanLog {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
+            background-color: #007bff;
+            color: white;
+            border: none;
             border-radius: 4px;
+        }
+        #startButton:hover {
+            background-color: #0056b3;
+        }
+        .nfc-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+        }
+        .nfc-table th,
+        .nfc-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .nfc-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        .nfc-table tr:hover {
+            background-color: #f9f9f9;
         }
     </style>
 </head>
@@ -37,15 +57,26 @@
     <button id="startButton">Start NFC Scan</button>
     <p id="status" class="status">Click the button to start NFC scanning</p>
     <p id="regNumber">Registration Number: <span id="regNum"></span></p>
-    <div id="scanLog">
-        <h3>Recent Scans</h3>
-        <div id="recentScans"></div>
+
+    <div id="tableContainer">
+        <h2>NFC Reader</h2>
+        <table class="nfc-table">
+            <thead>
+                <tr>
+                    <th>Registration Number</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="nfcTableBody"></tbody>
+        </table>
     </div>
 
     <!-- Import Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, query, getDocs, where, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
         // Your Firebase configuration
         const firebaseConfig = {
@@ -66,12 +97,57 @@
         const statusElement = document.getElementById("status");
         const regNumElement = document.getElementById("regNum");
         const startButton = document.getElementById("startButton");
-        const recentScans = document.getElementById("recentScans");
+        const tableBody = document.getElementById("nfcTableBody");
+
+        // Function to update table UI
+        function updateTable(regNumber, date, time) {
+            // Remove existing entry if present
+            const existingRows = Array.from(tableBody.getElementsByTagName("tr"));
+            const existingRow = existingRows.find(row => row.cells[0].textContent === regNumber);
+            if (existingRow) {
+                tableBody.removeChild(existingRow);
+            }
+
+            // Add new row at the top
+            const newRow = document.createElement("tr");
+            newRow.innerHTML = `
+                <td>${regNumber}</td>
+                <td>${date}</td>
+                <td>${time}</td>
+                <td>Present</td>
+            `;
+            tableBody.insertBefore(newRow, tableBody.firstChild);
+        }
+
+        // Function to delete existing entries
+        async function deleteExistingEntries(regNumber, currentDate) {
+            try {
+                const q = query(
+                    collection(db, "Students_S13"),
+                    where("registrationNumber", "==", regNumber),
+                    where("date", "==", currentDate)
+                );
+                const querySnapshot = await getDocs(q);
+                const deletePromises = [];
+                querySnapshot.forEach((doc) => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
+                await Promise.all(deletePromises);
+            } catch (error) {
+                console.error("Error deleting existing entries:", error);
+            }
+        }
 
         // Function to save attendance to Firebase
         async function saveAttendance(regNumber) {
             try {
-                alert("Attempting to save registration number:", regNumber);
+                console.log("Attempting to save registration number:", regNumber);
+                
+                const currentDate = new Date().toLocaleDateString();
+                const currentTime = new Date().toLocaleTimeString();
+
+                // Delete existing entries for this registration number from today
+                await deleteExistingEntries(regNumber, currentDate);
                 
                 // Create a timestamp to use as document ID
                 const timestamp = new Date().getTime();
@@ -84,20 +160,19 @@
                 await setDoc(attendanceRef, {
                     registrationNumber: regNumber,
                     timestamp: serverTimestamp(),
-                    date: new Date().toLocaleDateString(),
-                    time: new Date().toLocaleTimeString()
+                    date: currentDate,
+                    time: currentTime
                 });
 
-                alert("Successfully saved document with ID:", docId);
+                console.log("Successfully saved document with ID:", docId);
                 
-                // Update status and recent scans
+                // Update status and table
                 statusElement.textContent = `Registration Number ${regNumber} saved successfully!`;
                 statusElement.className = "status success";
+                regNumElement.textContent = regNumber;
                 
-                // Add to recent scans display
-                const scanEntry = document.createElement("p");
-                scanEntry.textContent = `${regNumber} - ${new Date().toLocaleTimeString()}`;
-                recentScans.insertBefore(scanEntry, recentScans.firstChild);
+                // Update table
+                updateTable(regNumber, currentDate, currentTime);
                 
                 return true;
             } catch (error) {
@@ -139,7 +214,6 @@
                         if (record.recordType === "text") {
                             const textDecoder = new TextDecoder(record.encoding);
                             const regNumber = textDecoder.decode(record.data);
-                            regNumElement.textContent = regNumber;
                             
                             // Save to Firebase with error logging
                             try {
