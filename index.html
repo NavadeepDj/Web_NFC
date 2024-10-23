@@ -73,7 +73,7 @@
         // Function to save attendance to Firebase
         async function saveAttendance(regNumber) {
             try {
-                const docRef = await addDoc(collection(db, "Students-S13"), {
+                const docRef = await addDoc(collection(db, "Students_S13"), {
                     registrationNumber: regNumber,
                     timestamp: serverTimestamp(),
                     date: new Date().toLocaleDateString(),
