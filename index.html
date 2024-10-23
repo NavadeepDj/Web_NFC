@@ -24,6 +24,12 @@
             margin: 20px 0;
             cursor: pointer;
         }
+        #scanLog {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -31,11 +37,67 @@
     <button id="startButton">Start NFC Scan</button>
     <p id="status" class="status">Click the button to start NFC scanning</p>
     <p id="regNumber">Registration Number: <span id="regNum"></span></p>
+    <div id="scanLog">
+        <h3>Recent Scans</h3>
+        <div id="recentScans"></div>
+    </div>
 
-    <script>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDz8GmEYaZPymSTowedSKUsj_",
+            authDomain: "kare-attendance-system-9fe72.firebaseapp.com",
+            projectId: "kare-attendance-system-9fe72",
+            storageBucket: "kare-attendance-system-9fe72.appspot.com",
+            messagingSenderId: "148380211452",
+            appId: "1:148380211452:web:72ba700a4ca285f74b1f79",
+            measurementId: "G-26LT6RJ37X"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const analytics = getAnalytics(app);
+
+        // DOM Elements
         const statusElement = document.getElementById("status");
         const regNumElement = document.getElementById("regNum");
         const startButton = document.getElementById("startButton");
+        const recentScans = document.getElementById("recentScans");
+
+        // Function to save attendance to Firebase
+        async function saveAttendance(regNumber) {
+            try {
+                const docRef = await addDoc(collection(db, "Students-S13"), {
+                    registrationNumber: regNumber,
+                    timestamp: serverTimestamp(),
+                    date: new Date().toLocaleDateString(),
+                    time: new Date().toLocaleTimeString()
+                });
+                
+                // Update status and recent scans
+                statusElement.textContent = `Registration Number ${regNumber} saved successfully!`;
+                statusElement.className = "status success";
+                
+                // Add to recent scans display
+                const scanEntry = document.createElement("p");
+                scanEntry.textContent = `${regNumber} - ${new Date().toLocaleTimeString()}`;
+                recentScans.insertBefore(scanEntry, recentScans.firstChild);
+                
+                console.log("Document written with ID: ", docRef.id);
+                return true;
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                statusElement.textContent = "Error saving to database. Please try again.";
+                statusElement.className = "status error";
+                return false;
+            }
+        }
 
         async function startNFCScanning() {
             if (!('NDEFReader' in window)) {
@@ -45,7 +107,6 @@
             }
 
             try {
-                // First, request NFC permissions
                 const permissionStatus = await navigator.permissions.query({ name: "nfc" });
                 
                 if (permissionStatus.state === "denied") {
@@ -56,29 +117,23 @@
 
                 const ndef = new NDEFReader();
                 
-                // Start NFC scan
                 await ndef.scan();
                 statusElement.textContent = "NFC scan started. Tap your ID card.";
                 statusElement.className = "status success";
                 console.log("NFC scan started successfully.");
 
-                ndef.addEventListener("reading", (event) => {
+                ndef.addEventListener("reading", async (event) => {
                     console.log("NFC tag detected.");
                     const message = event.message;
                     
                     for (const record of message.records) {
-                        console.log("Record type:", record.recordType);
-                        
                         if (record.recordType === "text") {
                             const textDecoder = new TextDecoder(record.encoding);
                             const regNumber = textDecoder.decode(record.data);
                             regNumElement.textContent = regNumber;
                             
-                            statusElement.textContent = `Registration Number ${regNumber} detected!`;
-                            statusElement.className = "status success";
-                            
-                            // Optional: Send to database
-                            // sendRegistrationNumberToDatabase(regNumber);
+                            // Save to Firebase
+                            await saveAttendance(regNumber);
                         }
                     }
                 });
@@ -104,20 +159,6 @@
 
         // Add click event listener to the start button
         startButton.addEventListener("click", startNFCScanning);
-
-        // Optional: Function to send data to server
-        function sendRegistrationNumberToDatabase(regNumber) {
-            fetch('your-database-endpoint', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ regNumber })
-            })
-            .then(response => response.json())
-            .then(data => console.log('Success:', data))
-            .catch(error => console.error('Error:', error));
-        }
     </script>
 </body>
 </html>
