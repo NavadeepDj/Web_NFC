@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - NFC Attendance System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">About Us</h1>
+        
+        <div class="mb-8">
+            <p class="text-gray-700">We are a team of dedicated students working on the NFC Attendance System to revolutionize attendance tracking in educational institutions.</p>
+        </div>
+
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Our Team</h2>
+        
+        <div id="teamContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Profile cards will be inserted here -->
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">About Us</h3>
+                    <p class="text-gray-400">NFC Attendance System provides efficient and reliable attendance tracking for educational institutions.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="text-gray-400">
+                        <li class="mb-2"><a href="index.html" class="hover:text-white transition-colors duration-300">Home</a></li>
+                        <li class="mb-2"><a href="#" class="hover:text-white transition-colors duration-300">Features</a></li>
+                        <li class="mb-2"><a href="#" class="hover:text-white transition-colors duration-300">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
+                    <p class="text-gray-400"><i class="fas fa-envelope mr-2"></i>info@nfcattendance.com</p>
+                    <p class="text-gray-400"><i class="fas fa-phone mr-2"></i>+1 (123) 456-7890</p>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
+                <p>&copy; 2023 NFC Attendance System. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Team member data
+        const teamMembers = [
+            {
+                name: "John Doe",
+                regNumber: "RA2011003010001",
+                year: "3rd Year",
+                section: "A",
+                photoUrl: "https://via.placeholder.com/150",
+                linkedinUrl: "https://www.linkedin.com/in/johndoe"
+            },
+            {
+                name: "Jane Smith",
+                regNumber: "RA2011003010002",
+                year: "3rd Year",
+                section: "B",
+                photoUrl: "https://via.placeholder.com/150",
+                linkedinUrl: "https://www.linkedin.com/in/janesmith"
+            },
+            {
+                name: "Bob Johnson",
+                regNumber: "RA2011003010003",
+                year: "3rd Year",
+                section: "A",
+                photoUrl: "https://via.placeholder.com/150",
+                linkedinUrl: "https://www.linkedin.com/in/bobjohnson"
+            },
+            {
+                name: "Alice Brown",
+                regNumber: "RA2011003010004",
+                year: "3rd Year",
+                section: "B",
+                photoUrl: "https://via.placeholder.com/150",
+                linkedinUrl: "https://www.linkedin.com/in/alicebrown"
+            }
+        ];
+
+        // Function to create a profile card
+        function createProfileCard(member) {
+            return `
+                <div class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center">
+                    <img src="${member.photoUrl}" alt="${member.name}" class="w-32 h-32 rounded-full mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">${member.name}</h3>
+                    <p class="text-gray-600 mb-1"><i class="fas fa-id-badge mr-2"></i>${member.regNumber}</p>
+                    <p class="text-gray-600 mb-3"><i class="fas fa-user-graduate mr-2"></i>${member.year}, Section ${member.section}</p>
+                    <a href="${member.linkedinUrl}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out">
+                        <i class="fab fa-linkedin mr-2"></i>LinkedIn
+                    </a>
+                </div>
+            `;
+        }
+
+        // Render profile cards
+        document.addEventListener('DOMContentLoaded', () => {
+            const teamContainer = document.getElementById('teamContainer');
+            for (const member of teamMembers) {
+                teamContainer.innerHTML += createProfileCard(member);
+            }
+        });
+    </script>
+</body>
+</html>
