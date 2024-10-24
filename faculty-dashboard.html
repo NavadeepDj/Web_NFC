@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Dashboard - NFC Attendance System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="font-bold text-xl">NFC Attendance System</a>
+                </div>
+                <div>
+                    <a href="index.html" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700">Home</a>
+                    <a href="aboutus.html" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700">About Us</a>
+                    <button id="logoutBtn" class="px-3 py-2 rounded-md text-sm font-medium bg-red-500 hover:bg-red-600">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Faculty Dashboard</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Total Students</h2>
+                <p class="text-3xl font-bold text-blue-600" id="totalStudents">Loading...</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Present Today</h2>
+                <p class="text-3xl font-bold text-green-600" id="presentToday">Loading...</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Attendance Rate</h2>
+                <p class="text-3xl font-bold text-purple-600" id="attendanceRate">Loading...</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Attendance Records</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 border-b text-left">Reg Number</th>
+                            <th class="py-2 px-4 border-b text-left">Date</th>
+                            <th class="py-2 px-4 border-b text-left">Time</th>
+                            <th class="py-2 px-4 border-b text-left">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        <!-- Attendance records will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-4">Attendance Trend</h2>
+            <canvas id="attendanceChart"></canvas>
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">About Us</h3>
+                    <p class="text-gray-400">NFC Attendance System provides efficient and reliable attendance tracking for educational institutions.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="text-gray-400">
+                        <li class="mb-2"><a href="index.html" class="hover:text-white transition-colors duration-300">Home</a></li>
+                        <li class="mb-2"><a href="aboutus.html" class="hover:text-white transition-colors duration-300">About Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
+                    <p class="text-gray-400"><i class="fas fa-envelope mr-2"></i>info@nfcattendance.com</p>
+                    <p class="text-gray-400"><i class="fas fa-phone mr-2"></i>+1 (123) 456-7890</p>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
+                <p>&copy; 2023 NFC Attendance System. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+        import { getFirestore, collection, query, getDocs, where } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDz8GmEYaZPymSTowedSKUsj_naF7JTfXw",
+            authDomain: "kare-attendance-system-9fe72.firebaseapp.com",
+            projectId: "kare-attendance-system-9fe72",
+            storageBucket: "kare-attendance-system-9fe72.appspot.com",
+            messagingSenderId: "148380211452",
+            appId: "1:148380211452:web:72ba700a4ca285f74b1f79",
+            measurementId: "G-26LT6RJ37X"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            signOut(auth).then(() => {
+                window.location.href = 'faculty-login.html';
+            }).catch((error) => {
+                console.error("Error signing out:", error);
+            });
+        });
+
+        // Load attendance data
+        async function loadAttendanceData() {
+            try {
+                const attendanceRef = collection(db, "Students_S13");
+                const q = query(attendanceRef, where("date", "==", new Date().toLocaleDateString()));
+                const querySnapshot = await getDocs(q);
+
+                let totalStudents = 0;
+                let presentToday = 0;
+                const attendanceByHour = Array(24).fill(0);
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    presentToday++;
+                    const hour = new Date(data.timestamp.toDate()).getHours();
+                    attendanceByHour[hour]++;
+
+                    // Add to table
+                    const tableBody = document.getElementById('attendanceTableBody');
+                    const row = tableBody.insertRow();
+                    row.insertCell(0).textContent = data.registrationNumber;
+                    row.insertCell(1).textContent = data.date;
+                    row.insertCell(2).textContent = data.time;
+                    row.insertCell(3).textContent = 'Present';
+                });
+
+                // Assume total students is present + 5 for this example
+                totalStudents = presentToday + 5;
+
+                // Update stats
+                document.getElementById('totalStudents').textContent = totalStudents;
+                document.getElementById('presentToday').textContent = presentToday;
+                document.getElementById('attendanceRate').textContent = `${Math.round((presentToday / totalStudents) * 100)}%`;
+
+                // Update chart
+                const ctx = document.getElementById('attendanceChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: 24}, (_, i) => i),
+                        datasets: [{
+                            label: 'Attendance by Hour',
+                            data: attendanceByHour,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error loading attendance data:", error);
+            }
+        }
+
+        // Load data when page is ready
+        document.addEventListener('DOMContentLoaded', loadAttendanceData);
+    </script>
+</body>
+</html>
