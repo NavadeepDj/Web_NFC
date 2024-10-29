@@ -385,6 +385,25 @@
             }
         }
 
+        // Function to request NFC permissions
+        async function requestNFCPermission() {
+            try {
+                const permissionStatus = await navigator.permissions.query({ name: "nfc" });
+                if (permissionStatus.state === "granted") {
+                    return true; // Permission granted
+                } else if (permissionStatus.state === "denied") {
+                    statusElement.textContent = "NFC permission denied. Please enable NFC permissions in your browser settings.";
+                    statusElement.className = "status error";
+                    return false; // Permission denied
+                }
+            } catch (error) {
+                console.error("Error requesting NFC permission:", error);
+                statusElement.textContent = "Error requesting NFC permission.";
+                statusElement.className = "status error";
+                return false; // Error occurred
+            }
+        }
+
         // Function to start NFC scanning
         async function startNFCScanning() {
             if (!('NDEFReader' in window)) {
@@ -393,38 +412,23 @@
                 return;
             }
 
-            try {
-                const permissionStatus = await navigator.permissions.query({ name: "nfc" });
-                
-                if (permissionStatus.state === "denied") {
-                    statusElement.textContent = "NFC permission denied. Please enable NFC permissions in your browser settings.";
-                    statusElement.className = "status error";
-                    return;
-                }
+            // Request NFC permission
+            const permissionGranted = await requestNFCPermission();
+            if (!permissionGranted) return; // Exit if permission is denied
 
+            try {
                 const ndef = new NDEFReader();
-                
                 await ndef.scan();
                 statusElement.textContent = "NFC scan started. Tap your ID card.";
                 statusElement.className = "status success";
-                console.log("NFC scan started successfully.");
 
                 ndef.addEventListener("reading", async (event) => {
-                    console.log("NFC tag detected.");
                     const message = event.message;
-                    
                     for (const record of message.records) {
                         if (record.recordType === "text") {
                             const textDecoder = new TextDecoder(record.encoding);
                             const regNumber = textDecoder.decode(record.data);
-                            
-                            try {
-                                await saveAttendance(regNumber);
-                            } catch (error) {
-                                console.error("Error in NFC reading event:", error);
-                                statusElement.textContent = `Error: ${error.message}`;
-                                statusElement.className = "status error";
-                            }
+                            await saveAttendance(regNumber);
                         }
                     }
                 });
@@ -432,25 +436,19 @@
                 ndef.addEventListener("readingerror", () => {
                     statusElement.textContent = "Cannot read NFC tag. Try again.";
                     statusElement.className = "status error";
-                    console.log("Error reading NFC tag.");
                 });
 
             } catch (error) {
                 console.error("Error starting NFC:", error);
-                if (error.name === "NotAllowedError") {
-                    statusElement.textContent = "NFC permission denied. Please allow NFC access and try again.";
-                } else if (error.name === "NotSupportedError") {
-                    statusElement.textContent = "NFC is not supported or enabled on this device.";
-                } else {
-                    statusElement.textContent = `Error starting NFC: ${error.message}`;
-                }
+                statusElement.textContent = `Error starting NFC: ${error.message}`;
                 statusElement.className = "status error";
             }
         }
 
         // Add click event listener to the start button
         startButton.addEventListener("click", startNFCScanning);
-// Load initial attendance data
+
+        // Load initial attendance data
         async function loadInitialData() {
             try {
                 const currentDate = new Date().toLocaleDateString();
@@ -548,7 +546,9 @@
                 statusElement.textContent = "System ready. Click 'Start NFC Scan' to begin scanning.";
                 statusElement.className = "status success";
             } catch (error) {
-                handleError(error, "initialization");
+                console.error("Error during initialization:", error);
+                statusElement.textContent = "Error initializing the system.";
+                statusElement.className = "status error";
             }
         });
 
