@@ -626,27 +626,40 @@
                 const base64Image = canvas.toDataURL('image/jpeg');
                 
                 // Send to Python server
-                const response = await fetch('http://34.100.220.102:5803/detect_face', {
+                const response = await fetch('http://34.100.220.102:5803/detect_person', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        image: base64Image,
-                        regNumber: currentRegNumber
+                        image: base64Image
                     })
                 });
 
                 const result = await response.json();
                 
                 if (result.success) {
-                    if (result.match) {
-                        detectionStatus.textContent = "Identity Verified!";
-                        await saveAttendance(currentRegNumber);
-                        setTimeout(stopCamera, 1000); // Stop camera after 1 second to show the success message
+                    if (result.detected_persons.length > 0) {
+                        // Display the processed image with bounding boxes
+                        const processedImage = new Image();
+                        processedImage.src = 'data:image/jpeg;base64,' + result.image;
+                        
+                        const outputCanvas = document.getElementById('canvasOutput');
+                        outputCanvas.width = video.videoWidth;
+                        outputCanvas.height = video.videoHeight;
+                        const outputContext = outputCanvas.getContext('2d');
+                        
+                        processedImage.onload = async () => {
+                            outputContext.drawImage(processedImage, 0, 0);
+                            
+                            // If person detected, mark attendance
+                            detectionStatus.textContent = "Person Detected!";
+                            await saveAttendance(currentRegNumber);
+                            setTimeout(stopCamera, 2000); // Show the result for 2 seconds
+                        };
                     } else {
-                        detectionStatus.textContent = "Identity Mismatch - Please try again";
-                        setTimeout(stopCamera, 2000); // Stop camera after 2 seconds to show the error message
+                        detectionStatus.textContent = "No person detected - Please try again";
+                        setTimeout(stopCamera, 2000);
                     }
                 } else {
                     throw new Error(result.error);
