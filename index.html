@@ -333,16 +333,33 @@
         // Function to start NFC scanning
         async function startNFCScanning() {
             if (!('NDEFReader' in window)) {
-                document.getElementById('status').textContent = "NFC not supported on this device.";
+                statusElement.textContent = "NFC not supported on this device.";
                 return;
             }
 
             try {
+                // First, explicitly request NFC permissions
+                const permissionStatus = await navigator.permissions.query({ name: "nfc" });
+                
+                if (permissionStatus.state === "denied") {
+                    statusElement.textContent = "NFC permission denied. Please enable NFC in your browser settings.";
+                    return;
+                }
+
+                // Create NDEFReader instance
                 const ndef = new NDEFReader();
+                
+                // Show scanning status
+                statusElement.textContent = "Requesting NFC permission...";
+                
+                // Start scanning - this will trigger the permission prompt
                 await ndef.scan();
-                document.getElementById('status').textContent = "NFC scan started. Tap your ID card...";
+                
+                // If we get here, permission was granted
+                statusElement.textContent = "NFC scan started. Tap your ID card...";
                 console.log("Started NFC scan");
 
+                // Add event listeners for NFC reading
                 ndef.addEventListener("reading", async ({ message, serialNumber }) => {
                     console.log("NFC tag read!");
                     
@@ -353,41 +370,49 @@
                                 const regNumber = textDecoder.decode(record.data);
                                 console.log("Registration Number:", regNumber);
                                 
-                                // Update the registration number display
-                                document.getElementById('regNum').textContent = regNumber;
-                                document.getElementById('status').textContent = `NFC tag read: ${regNumber}`;
+                                // Update UI
+                                regNumElement.textContent = regNumber;
+                                statusElement.textContent = `NFC tag read: ${regNumber}`;
                                 
-                                // Get current date and time
-                                const currentDate = new Date();
-                                const date = currentDate.toLocaleDateString();
-                                const time = currentDate.toLocaleTimeString();
-
-                                // Update the table
-                                updateTable(regNumber, date, time);
-                                
-                                // Start camera for face detection
+                                // Start camera process
                                 await startCamera(regNumber);
                             }
                         }
                     } catch (error) {
                         console.error("Error processing NFC tag:", error);
-                        document.getElementById('status').textContent = "Error reading NFC tag data.";
+                        statusElement.textContent = "Error reading NFC tag data.";
                     }
                 });
 
+                // Add error listener
                 ndef.addEventListener("readingerror", () => {
                     console.log("Error reading NFC tag");
-                    document.getElementById('status').textContent = "Error reading NFC tag. Please try again.";
+                    statusElement.textContent = "Error reading NFC tag. Please try again.";
+                });
+
+                // Add permission change listener
+                permissionStatus.addEventListener("change", (e) => {
+                    if (e.target.state === "denied") {
+                        statusElement.textContent = "NFC permission was denied.";
+                        console.log("NFC permission was denied");
+                    } else if (e.target.state === "granted") {
+                        statusElement.textContent = "NFC permission was granted. Ready to scan.";
+                        console.log("NFC permission was granted");
+                    }
                 });
 
             } catch (error) {
                 console.error("Error starting NFC scan:", error);
                 if (error.name === "NotAllowedError") {
-                    document.getElementById('status').textContent = "NFC permission denied. Please enable NFC.";
+                    statusElement.textContent = "NFC permission denied. Please enable NFC and try again.";
                 } else if (error.name === "NotSupportedError") {
-                    document.getElementById('status').textContent = "NFC not supported or enabled on this device.";
+                    statusElement.textContent = "NFC not supported or enabled on this device.";
+                } else if (error.name === "NotReadableError") {
+                    statusElement.textContent = "Cannot read NFC tag. Please try again.";
+                } else if (error.name === "NetworkError") {
+                    statusElement.textContent = "Network error while reading NFC.";
                 } else {
-                    document.getElementById('status').textContent = `Error: ${error.message}`;
+                    statusElement.textContent = `Error: ${error.message}`;
                 }
             }
         }
