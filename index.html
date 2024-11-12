@@ -630,7 +630,10 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
                     },
+                    credentials: 'omit',  // Important for CORS
                     body: JSON.stringify({
                         image: base64Image
                     })
