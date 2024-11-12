@@ -740,7 +740,7 @@
                 const base64Image = canvas.toDataURL('image/jpeg');
 
                 // Send to Python server
-                const response = await fetch('http://10.2.12.163:5000/detect_face', {
+                const response = await fetch('http://34.100.220.102:5803/detect_face', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
