@@ -570,7 +570,8 @@
         let scanStatus = null;
         let detectionStatus = null;
         let isProcessing = false;
-        let currentRegNumber = null;
+        let lastProcessTime = 0;
+        const COOLDOWN_PERIOD = 1000; // 1 second cooldown
 
         // Initialize elements after DOM loads
         document.addEventListener('DOMContentLoaded', () => {
@@ -602,7 +603,7 @@
                 videoContainer.style.display = 'block';
                 scanStatus.textContent = 'Camera initialized';
                 
-                // Start countdown
+                // Start coun
                 let countdown = 3;
                 detectionStatus.textContent = `Photo will be taken in ${countdown} seconds...`;
                 
@@ -631,8 +632,8 @@
                 stream.getTracks().forEach(track => track.stop());
             }
             videoContainer.style.display = 'none';
-            isProcessing = false;
             currentRegNumber = null;
+            // Don't reset isProcessing here, it's handled in takePhoto
         }
 
         // Function to take the photo
@@ -658,7 +659,7 @@
                         'Accept': 'application/json',
                         'Access-Control-Allow-Origin': '*'
                     },
-                    credentials: 'omit',  // Important for CORS
+                    credentials: 'omit',
                     body: JSON.stringify({
                         image: base64Image
                     })
@@ -679,29 +680,48 @@
                         
                         processedImage.onload = async () => {
                             outputContext.drawImage(processedImage, 0, 0);
-                            
-                            // If person detected, mark attendance
                             detectionStatus.textContent = "Person Detected!";
                             await saveAttendance(currentRegNumber);
-                            setTimeout(stopCamera, 2000); // Show the result for 2 seconds
+                            setTimeout(() => {
+                                stopCamera();
+                                // Reset processing flag and update last process time
+                                isProcessing = false;
+                                lastProcessTime = Date.now();
+                            }, 2000);
                         };
                     } else {
                         detectionStatus.textContent = "No person detected - Please try again";
-                        setTimeout(stopCamera, 2000);
+                        setTimeout(() => {
+                            stopCamera();
+                            isProcessing = false;
+                            lastProcessTime = Date.now();
+                        }, 2000);
                     }
                 } else {
-                    throw new Error(result.error);
+                    throw new Error(result.error || 'Detection failed');
                 }
 
             } catch (error) {
                 console.error('Error processing photo:', error);
-                detectionStatus.textContent = "Error processing photo";
-                setTimeout(stopCamera, 2000);
+                detectionStatus.textContent = "Error: " + (error.message || "Processing failed");
+                setTimeout(() => {
+                    stopCamera();
+                    isProcessing = false;
+                    lastProcessTime = Date.now();
+                }, 2000);
             }
         }
 
         // Modified NFC reading event handler
         ndef.addEventListener("reading", async (event) => {
+            const currentTime = Date.now();
+            
+            // Check if we're currently processing or in cooldown
+            if (isProcessing || (currentTime - lastProcessTime) < COOLDOWN_PERIOD) {
+                console.log("Processing in progress or cooldown active. Ignoring tap.");
+                return;
+            }
+
             console.log("NFC tag detected.");
             const message = event.message;
             
@@ -710,7 +730,8 @@
                     const textDecoder = new TextDecoder(record.encoding);
                     const regNumber = textDecoder.decode(record.data);
                     
-                    // Start camera and face detection
+                    // Set processing flag
+                    isProcessing = true;
                     await startCamera(regNumber);
                 }
             }
