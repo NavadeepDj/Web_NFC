@@ -265,25 +265,44 @@
         // Function to save attendance to Firebase
         async function saveAttendance(regNumber) {
             try {
-                console.log("Attempting to save registration number:", regNumber);
-                
+                // Check for existing attendance in the last hour
                 const currentDate = new Date().toLocaleDateString();
                 const currentTime = new Date().toLocaleTimeString();
+                const oneHourAgo = new Date();
+                oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
-                // Delete existing entries for this registration number from today
-                await deleteExistingEntries(regNumber, currentDate);
+                // Query for existing attendance
+                const q = query(
+                    collection(db, "Students_S13"),
+                    where("registrationNumber", "==", regNumber),
+                    where("date", "==", currentDate)
+                );
                 
-                // Create a timestamp to use as document ID
-                const timestamp = new Date().getTime();
-                const docId = `${regNumber}_${timestamp}`;
+                const querySnapshot = await getDocs(q);
+                let shouldSave = true;
                 
-                // Create the document reference
+                // Check if there's a recent entry
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const recordTime = new Date(`${data.date} ${data.time}`);
+                    if (recordTime > oneHourAgo) {
+                        shouldSave = false;
+                        console.log("Duplicate entry prevented: Last attendance was within an hour");
+                        statusElement.textContent = `${regNumber} already marked present in the last hour`;
+                        return;
+                    }
+                });
+
+                if (!shouldSave) {
+                    return false;
+                }
+
+                // If no recent entry found, save new attendance
+                const docId = `${regNumber}_${currentDate}_${currentTime}`;
                 const attendanceRef = doc(db, "Students_S13", docId);
-                
-                // Set the document data
+
                 await setDoc(attendanceRef, {
                     registrationNumber: regNumber,
-                    timestamp: serverTimestamp(),
                     date: currentDate,
                     time: currentTime
                 });
