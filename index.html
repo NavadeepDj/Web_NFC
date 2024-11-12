@@ -572,6 +572,7 @@
         let isProcessing = false;
         let lastProcessTime = 0;
         const COOLDOWN_PERIOD = 1000; // 1 second cooldown
+        let currentRegNumber = null;
 
         // Initialize elements after DOM loads
         document.addEventListener('DOMContentLoaded', () => {
@@ -587,9 +588,10 @@
 
         // Function to start camera and face detection
         async function startCamera(regNumber) {
-            console.log("Starting camera for registration number:", regNumber);
             try {
                 currentRegNumber = regNumber;
+                document.getElementById('regNum').textContent = regNumber;
+                
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         width: 640,
@@ -598,31 +600,34 @@
                     } 
                 });
                 
-                console.log("Camera stream obtained");
+                const video = document.getElementById('video');
                 video.srcObject = stream;
-                videoContainer.style.display = 'block';
-                scanStatus.textContent = 'Camera initialized';
-                
-                // Start coun
-                let countdown = 3;
-                detectionStatus.textContent = `Photo will be taken in ${countdown} seconds...`;
-                
-                const countdownInterval = setInterval(() => {
-                    countdown--;
-                    if (countdown > 0) {
-                        detectionStatus.textContent = `Photo will be taken in ${countdown} seconds...`;
-                    } else {
-                        clearInterval(countdownInterval);
-                        detectionStatus.textContent = 'Taking photo...';
-                        // Take photo after countdown
-                        takePhoto(regNumber);
-                    }
-                }, 1000);
+                video.onloadedmetadata = () => {
+                    video.play();
+                    videoContainer.style.display = 'block';
+                    scanStatus.textContent = 'Camera initialized';
+                    
+                    // Start countdown for photo
+                    let countdown = 3;
+                    detectionStatus.textContent = `Photo will be taken in ${countdown} seconds...`;
+                    
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        if (countdown > 0) {
+                            detectionStatus.textContent = `Photo will be taken in ${countdown} seconds...`;
+                        } else {
+                            clearInterval(countdownInterval);
+                            detectionStatus.textContent = 'Taking photo...';
+                            // Take photo after countdown
+                            takePhoto();
+                        }
+                    }, 1000);
+                };
                 
             } catch (error) {
                 console.error('Error accessing camera:', error);
                 scanStatus.textContent = 'Camera access denied';
-                detectionStatus.textContent = 'Please enable camera access and try again';
+                isProcessing = false;
             }
         }
 
@@ -633,13 +638,12 @@
             }
             videoContainer.style.display = 'none';
             currentRegNumber = null;
-            // Don't reset isProcessing here, it's handled in takePhoto
         }
 
         // Function to take the photo
-        async function takePhoto(regNumber) {
+        async function takePhoto() {
             try {
-                // Create a canvas to capture the photo
+                const video = document.getElementById('video');
                 const canvas = document.createElement('canvas');
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
@@ -657,9 +661,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
                     },
-                    credentials: 'omit',
                     body: JSON.stringify({
                         image: base64Image
                     })
@@ -682,9 +684,10 @@
                             outputContext.drawImage(processedImage, 0, 0);
                             detectionStatus.textContent = "Person Detected!";
                             await saveAttendance(currentRegNumber);
+                            
+                            // Delay cleanup
                             setTimeout(() => {
                                 stopCamera();
-                                // Reset processing flag and update last process time
                                 isProcessing = false;
                                 lastProcessTime = Date.now();
                             }, 2000);
@@ -716,7 +719,6 @@
         ndef.addEventListener("reading", async (event) => {
             const currentTime = Date.now();
             
-            // Check if we're currently processing or in cooldown
             if (isProcessing || (currentTime - lastProcessTime) < COOLDOWN_PERIOD) {
                 console.log("Processing in progress or cooldown active. Ignoring tap.");
                 return;
@@ -730,9 +732,9 @@
                     const textDecoder = new TextDecoder(record.encoding);
                     const regNumber = textDecoder.decode(record.data);
                     
-                    // Set processing flag
                     isProcessing = true;
                     await startCamera(regNumber);
+                    break;  // Process only the first valid record
                 }
             }
         });
@@ -741,6 +743,18 @@
         function onOpenCvReady() {
             console.log('OpenCV.js is ready');
             // You can initialize any OpenCV-dependent features here
+        }
+
+        if ('NDEFReader' in window) {
+            try {
+                const ndef = new NDEFReader();
+                await ndef.scan();
+                ndef.addEventListener("reading", handleNFCReading);
+            } catch (error) {
+                console.error("Error initializing NFC:", error);
+                document.getElementById('status').textContent = 
+                    "Error initializing NFC. Please check if NFC is enabled.";
+            }
         }
     </script>
 </body>
