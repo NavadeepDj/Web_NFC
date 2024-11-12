@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Attendance System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .table-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .present { 
+            background-color: #d1fae5; 
+            color: #065f46; 
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8 text-center">
+            <h1 class="text-3xl font-bold mb-2">NFC Attendance System</h1>
+            <p id="status" class="text-gray-600">Click Start to begin scanning</p>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="mb-8 flex justify-center">
+            <button id="startButton" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
+                Start NFC Scan
+            </button>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="overflow-x-auto bg-white rounded-lg shadow">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Registration Number
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Time
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="nfcTableBody">
+                    <!-- Table rows will be added here dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const statusElement = document.getElementById('status');
+        const tableBody = document.getElementById('nfcTableBody');
+
+        function updateTable(regNumber) {
+            const currentDate = new Date();
+            const date = currentDate.toLocaleDateString();
+            const time = currentDate.toLocaleTimeString();
+
+            const newRow = document.createElement("tr");
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">${regNumber}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${date}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${time}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="table-status present">Present</span>
+                </td>
+            `;
+            tableBody.insertBefore(newRow, tableBody.firstChild);
+        }
+
+        async function startNFCScanning() {
+            if (!('NDEFReader' in window)) {
+                statusElement.textContent = "NFC not supported on this device.";
+                return;
+            }
+
+            try {
+                const ndef = new NDEFReader();
+                await ndef.scan();
+                statusElement.textContent = "NFC scan started. Tap your ID card...";
+                console.log("Started NFC scan");
+
+                ndef.addEventListener("reading", ({ message, serialNumber }) => {
+                    console.log("NFC tag read!");
+                    
+                    try {
+                        for (const record of message.records) {
+                            if (record.recordType === "text") {
+                                const textDecoder = new TextDecoder();
+                                const regNumber = textDecoder.decode(record.data);
+                                console.log("Registration Number:", regNumber);
+                                
+                                statusElement.textContent = `NFC tag read: ${regNumber}`;
+                                updateTable(regNumber);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error processing NFC tag:", error);
+                        statusElement.textContent = "Error reading NFC tag data.";
+                    }
+                });
+
+                ndef.addEventListener("readingerror", () => {
+                    console.log("Error reading NFC tag");
+                    statusElement.textContent = "Error reading NFC tag. Please try again.";
+                });
+
+            } catch (error) {
+                console.error("Error starting NFC scan:", error);
+                if (error.name === "NotAllowedError") {
+                    statusElement.textContent = "NFC permission denied. Please enable NFC.";
+                } else if (error.name === "NotSupportedError") {
+                    statusElement.textContent = "NFC not supported or enabled on this device.";
+                } else {
+                    statusElement.textContent = `Error: ${error.message}`;
+                }
+            }
+        }
+
+        startButton.addEventListener('click', startNFCScanning);
+    </script>
+</body>
+</html>
