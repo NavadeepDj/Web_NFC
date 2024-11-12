@@ -651,7 +651,7 @@
                 const base64Image = canvas.toDataURL('image/jpeg');
                 
                 // Send to Python server
-                const response = await fetch('http://34.100.220.102:5803/detect_person', {
+                const response = await fetch('https://api.predictors.site/detect_person', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
