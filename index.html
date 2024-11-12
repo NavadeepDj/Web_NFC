@@ -207,31 +207,39 @@
 
         // Function to update table UI
         function updateTable(regNumber, date, time) {
+            const tableBody = document.getElementById('nfcTableBody');
             const newRow = document.createElement("tr");
             newRow.innerHTML = `
-                <td>${regNumber}</td>
-                <td>${date}</td>
-                <td>${time}</td>
-                <td><span class="table-status present">Present</span></td>
+                <td class="px-6 py-4 whitespace-nowrap">${regNumber}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${date}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${time}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="table-status present">Present</span>
+                </td>
             `;
-            newRow.classList.add('cursor-pointer', 'hover:bg-gray-100');
-            newRow.addEventListener('click', () => alert(`Details for ${regNumber}`));
+            // Insert the new row at the beginning of the table
             tableBody.insertBefore(newRow, tableBody.firstChild);
 
-            // Update attendance data and stats
-            attendanceData[attendanceData.length - 1]++;
-            totalStudents++;
-            currentHourStudents++;
-            
-            // Update stats display
-            totalStudentsElement.textContent = totalStudents;
-            currentHourCountElement.textContent = currentHourStudents;
-            attendanceRateElement.textContent = 
-                Math.round((totalStudents / (totalStudents + 5)) * 100) + '%';
+            // Update statistics
+            updateStatistics();
+        }
 
-            // Update chart
-            chart.data.datasets[0].data = attendanceData;
-            chart.update();
+        function updateStatistics() {
+            const totalStudents = document.getElementById('totalStudents');
+            const currentHourCount = document.getElementById('currentHourCount');
+            const attendanceRate = document.getElementById('attendanceRate');
+
+            // Increment total students
+            let total = parseInt(totalStudents.textContent) + 1;
+            totalStudents.textContent = total;
+
+            // Update current hour count
+            let currentCount = parseInt(currentHourCount.textContent) + 1;
+            currentHourCount.textContent = currentCount;
+
+            // Calculate and update attendance rate
+            let rate = Math.round((total / (total + 5)) * 100);
+            attendanceRate.textContent = `${rate}%`;
         }
 
         // Function to delete existing entries
@@ -314,7 +322,6 @@
 
                 ndef.addEventListener("reading", async ({ message, serialNumber }) => {
                     console.log("NFC tag read!");
-                    alert("NFC tag detected!");
                     
                     try {
                         for (const record of message.records) {
@@ -326,6 +333,14 @@
                                 // Update the registration number display
                                 document.getElementById('regNum').textContent = regNumber;
                                 document.getElementById('status').textContent = `NFC tag read: ${regNumber}`;
+                                
+                                // Get current date and time
+                                const currentDate = new Date();
+                                const date = currentDate.toLocaleDateString();
+                                const time = currentDate.toLocaleTimeString();
+
+                                // Update the table
+                                updateTable(regNumber, date, time);
                                 
                                 // Start camera for face detection
                                 await startCamera(regNumber);
