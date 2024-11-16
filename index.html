@@ -187,8 +187,9 @@
                     JSON.stringify(result, null, 2);
 
                 if (result.success && result.detected_persons.length > 0) {
-                    const detectedId = result.detected_persons[0].id;
-                    const isMatch = currentNfcId === detectedId;
+                    const detectedId = String(result.detected_persons[0].id);
+                    const nfcIdString = String(currentNfcId);
+                    const isMatch = nfcIdString === detectedId;
                     await processAttendance(isMatch);
                     verificationStatus.textContent = isMatch ? 
                         'Identity Verified!' : 
