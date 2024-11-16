@@ -64,6 +64,21 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Add this section just before closing the container div -->
+        <div class="mt-8 bg-white rounded-lg shadow p-4">
+            <h2 class="text-xl font-bold mb-4">Debug Information</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="text-lg font-semibold">Current NFC ID:</h3>
+                    <pre id="nfcDebug" class="bg-gray-100 p-2 rounded">-</pre>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold">API Response:</h3>
+                    <pre id="apiDebug" class="bg-gray-100 p-2 rounded overflow-x-auto whitespace-pre-wrap">-</pre>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
