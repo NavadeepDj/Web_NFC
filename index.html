@@ -157,38 +157,62 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        image: canvas.toDataURL('image/jpeg')
+                        image: canvas.toDataURL('image/jpeg'),
+                        nfc_id: currentNfcId
                     })
                 });
 
                 const result = await response.json();
-                await processAttendance(result.success && result.detected_persons.length > 0);
+                
+                if (result.success && result.detected_persons.length > 0) {
+                    // Get the first detected person's ID
+                    const detectedId = result.detected_persons[0].id;
+                    
+                    // Compare NFC ID with detected person's ID
+                    const isMatch = currentNfcId === detectedId;
+                    
+                    // Process attendance based on match
+                    await processAttendance(isMatch);
+                    
+                    // Update verification status
+                    verificationStatus.textContent = isMatch ? 
+                        'Identity Verified!' : 
+                        'ID Mismatch - Possible Proxy';
+                } else {
+                    // No person detected
+                    await processAttendance(false);
+                    verificationStatus.textContent = 'No person detected';
+                }
             } catch (error) {
                 console.error('Verification error:', error);
                 await processAttendance(false);
+                verificationStatus.textContent = 'Verification failed';
             }
         }
 
         // Process attendance result
-        async function processAttendance(isVerified) {
+        async function processAttendance(isMatch) {
             const timestamp = new Date();
-            const status = isVerified ? 'present' : 'proxy possible';
+            const status = isMatch ? 'present' : 'proxy possible';
 
-            // Save to Firebase
+            // Save to Firebase with additional details
             try {
                 await setDoc(doc(db, "attendance", `${currentNfcId}_${timestamp.getTime()}`), {
-                    id: currentNfcId,
+                    nfc_id: currentNfcId,
                     timestamp: timestamp.toISOString(),
-                    status: status
+                    status: status,
+                    verification_status: isMatch ? 'id_match' : 'id_mismatch'
                 });
 
                 // Update UI
                 updateAttendanceLog(currentNfcId, timestamp, status);
             } catch (error) {
                 console.error('Firebase error:', error);
+                verificationStatus.textContent = 'Error saving attendance';
             }
 
-            cleanup();
+            // Delay cleanup to show status
+            setTimeout(cleanup, 2000);
         }
 
         // Update attendance log in UI
@@ -199,7 +223,7 @@
                 <td class="px-6 py-4">${timestamp.toLocaleTimeString()}</td>
                 <td class="px-6 py-4">
                     <span class="status-badge ${status === 'present' ? 'present' : 'proxy'}">
-                        ${status}
+                        ${status === 'present' ? 'Present (ID Match)' : 'Proxy Possible (ID Mismatch)'}
                     </span>
                 </td>
             `;
