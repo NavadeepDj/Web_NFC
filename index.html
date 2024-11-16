@@ -148,8 +148,8 @@
         // Verify face using server
         async function verifyFace() {
             const canvas = document.getElementById('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = 1920;
+            canvas.height = 1080;
             canvas.getContext('2d').drawImage(video, 0, 0);
 
             try {
