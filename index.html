@@ -167,6 +167,9 @@
             canvas.height = 1080;
             canvas.getContext('2d').drawImage(video, 0, 0);
 
+            // Update NFC debug info
+            document.getElementById('nfcDebug').textContent = currentNfcId || 'No NFC ID';
+
             try {
                 const response = await fetch('https://api.kvhkc.xyz/detect_person', {
                     method: 'POST',
@@ -179,27 +182,26 @@
 
                 const result = await response.json();
                 
+                // Update API debug info with formatted JSON
+                document.getElementById('apiDebug').textContent = 
+                    JSON.stringify(result, null, 2);
+
                 if (result.success && result.detected_persons.length > 0) {
-                    // Get the first detected person's ID
                     const detectedId = result.detected_persons[0].id;
-                    
-                    // Compare NFC ID with detected person's ID
                     const isMatch = currentNfcId === detectedId;
-                    
-                    // Process attendance based on match
                     await processAttendance(isMatch);
-                    
-                    // Update verification status
                     verificationStatus.textContent = isMatch ? 
                         'Identity Verified!' : 
                         'ID Mismatch - Possible Proxy';
                 } else {
-                    // No person detected
                     await processAttendance(false);
                     verificationStatus.textContent = 'No person detected';
                 }
             } catch (error) {
                 console.error('Verification error:', error);
+                // Update API debug info with error
+                document.getElementById('apiDebug').textContent = 
+                    `Error: ${error.message}`;
                 await processAttendance(false);
                 verificationStatus.textContent = 'Verification failed';
             }
@@ -254,6 +256,12 @@
             currentNfcId = null;
             isProcessing = false;
             status.textContent = 'Ready to scan';
+            
+            // Clear debug info after delay
+            setTimeout(() => {
+                document.getElementById('nfcDebug').textContent = '-';
+                document.getElementById('apiDebug').textContent = '-';
+            }, 5000);  // Clear after 5 seconds
         }
     </script>
 </body>
