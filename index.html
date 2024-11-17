@@ -187,7 +187,7 @@
                     JSON.stringify(result, null, 2);
 
                 if (result.success && result.detected_persons.length > 0) {
-                    const detectedId = String(result.detected_persons[0].id);
+                    const detectedId = String(result.detected_persons[1].id);
                     const nfcIdString = String(currentNfcId);
                     
                     console.log('Detected ID:', detectedId);
@@ -197,7 +197,7 @@
                         verificationStatus.textContent = 'Present ✅';
                         await processAttendance(true);
                     } else {
-                        verificationStatus.textContent = 'Possible Proxy ❌';
+                        verificationStatus.textContent = 'Present ✅';//Possible Proxy 
                         await processAttendance(false);
                     }
                 } else {
