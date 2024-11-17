@@ -182,29 +182,32 @@
 
                 const result = await response.json();
                 
-                // Update API debug info with formatted JSON
+                // Update API debug info
                 document.getElementById('apiDebug').textContent = 
                     JSON.stringify(result, null, 2);
 
                 if (result.success && result.detected_persons.length > 0) {
                     const detectedId = String(result.detected_persons[0].id);
                     const nfcIdString = String(currentNfcId);
-                    const isMatch = nfcIdString === detectedId;
-                    await processAttendance(isMatch);
-                    verificationStatus.textContent = isMatch ? 
-                        'Identity Verified!' : 
-                        'ID Mismatch - Possible Proxy';
+                    
+                    console.log('Detected ID:', detectedId);
+                    console.log('NFC ID:', nfcIdString);
+                    
+                    if (detectedId === nfcIdString) {
+                        verificationStatus.textContent = 'Present ✅';
+                        await processAttendance(true);
+                    } else {
+                        verificationStatus.textContent = 'Possible Proxy ❌';
+                        await processAttendance(false);
+                    }
                 } else {
-                    await processAttendance(false);
                     verificationStatus.textContent = 'No person detected';
+                    await processAttendance(false);
                 }
             } catch (error) {
                 console.error('Verification error:', error);
-                // Update API debug info with error
-                document.getElementById('apiDebug').textContent = 
-                    `Error: ${error.message}`;
-                await processAttendance(false);
                 verificationStatus.textContent = 'Verification failed';
+                await processAttendance(false);
             }
         }
 
