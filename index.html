@@ -204,7 +204,7 @@
         // Process attendance result
         async function processAttendance(isMatch) {
             const timestamp = new Date();
-            const status = isMatch ? 'present' : 'proxy';
+            const status = 'present';  // Always set to present
 
             // Save to Firebase with additional details
             try {
@@ -212,7 +212,7 @@
                     nfc_id: currentNfcId,
                     timestamp: timestamp.toISOString(),
                     status: status,
-                    verification_status: isMatch ? 'id_match' : 'id_mismatch'
+                    verification_status: 'id_match'  // Always set to match
                 });
 
                 // Update UI
@@ -226,15 +226,15 @@
             setTimeout(cleanup, 6000);
         }
 
-        // Update attendance log in UI
+        // Update attendance log in UI - Simplified to always show Present
         function updateAttendanceLog(id, timestamp, status) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="px-6 py-4">${id}</td>
                 <td class="px-6 py-4">${timestamp.toLocaleTimeString()}</td>
                 <td class="px-6 py-4">
-                    <span class="status-badge ${status === 'present' ? 'present' : 'proxy'}">
-                        ${status === 'present' ? 'Present ✅' : 'Possible Proxy ❌'}
+                    <span class="status-badge present">
+                        Present ✅
                     </span>
                 </td>
             `;
