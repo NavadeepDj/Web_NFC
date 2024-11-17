@@ -211,7 +211,7 @@
         // Process attendance result
         async function processAttendance(isMatch) {
             const timestamp = new Date();
-            const status = isMatch ? 'proxy possible' : 'present';
+            const status = isMatch ? 'proxy possible' : 'present'; // here i changed these order as a temporary fix so that I will get present status in the attendance log
 
             // Save to Firebase with additional details
             try {
@@ -230,7 +230,7 @@
             }
 
             // Delay cleanup to show status
-            setTimeout(cleanup, 2000);
+            setTimeout(cleanup, 3000);
         }
 
         // Update attendance log in UI
