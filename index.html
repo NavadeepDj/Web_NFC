@@ -211,7 +211,7 @@
         // Process attendance result
         async function processAttendance(isMatch) {
             const timestamp = new Date();
-            const status = isMatch ? 'present' : 'proxy possible';
+            const status = isMatch ? 'proxy possible' : 'present';
 
             // Save to Firebase with additional details
             try {
