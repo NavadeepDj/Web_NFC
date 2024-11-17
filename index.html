@@ -219,7 +219,7 @@
         // Process attendance result
         async function processAttendance(isMatch) {
             const timestamp = new Date();
-            const status = isMatch ? 'proxy possible' : 'present'; // here i changed these order as a temporary fix so that I will get present status in the attendance log
+            const status = isMatch ? 'present' : 'proxy';
 
             // Save to Firebase with additional details
             try {
@@ -249,7 +249,7 @@
                 <td class="px-6 py-4">${timestamp.toLocaleTimeString()}</td>
                 <td class="px-6 py-4">
                     <span class="status-badge ${status === 'present' ? 'present' : 'proxy'}">
-                        ${status === 'present' ? 'Present (ID Match)' : 'Present (ID Match)✅'}
+                        ${status === 'present' ? 'Present ✅' : 'Possible Proxy ❌'}
                     </span>
                 </td>
             `;
