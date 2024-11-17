@@ -190,13 +190,13 @@
                     // Always take the first detected person only
                     const firstPerson = result.detected_persons[0];
                     
-                    // Check if we're getting class or id from the response
-                    const detectedId = String(firstPerson.class || firstPerson.id);
+                    // Get the class from the response (it's always coming as 'class' now)
+                    const detectedId = String(firstPerson.class);
                     const nfcIdString = String(currentNfcId);
                     
-                    console.log('First Detected Person ID:', detectedId);
-                    console.log('Total Detected Persons:', result.detected_persons.length);
+                    console.log('Detected ID (class):', detectedId);
                     console.log('NFC ID:', nfcIdString);
+                    console.log('Are IDs equal?:', detectedId === nfcIdString);
                     
                     if (detectedId === nfcIdString) {
                         verificationStatus.textContent = 'Present ✅';
