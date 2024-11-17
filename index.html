@@ -187,9 +187,15 @@
                     JSON.stringify(result, null, 2);
 
                 if (result.success && result.detected_persons && result.detected_persons.length > 0) {
-                    // Temporary fix: Always mark as present
-                    verificationStatus.textContent = 'Present ✅';
-                    await processAttendance(true);  // Always pass true
+                    const detectedId = String(result.detected_persons[0].class);
+                    const nfcIdString = String(currentNfcId);
+                    
+                    console.log('Detected ID:', detectedId);
+                    console.log('NFC ID:', nfcIdString);
+                    
+                    const isMatch = detectedId === nfcIdString;
+                    verificationStatus.textContent = isMatch ? 'Present ✅' : 'Possible Proxy ❌';
+                    await processAttendance(isMatch);
                 } else {
                     verificationStatus.textContent = 'No person detected';
                     await processAttendance(false);
@@ -204,7 +210,7 @@
         // Process attendance result
         async function processAttendance(isMatch) {
             const timestamp = new Date();
-            const status = 'present';  // Always set to present
+            const status = isMatch ? 'present' : 'proxy';
 
             // Save to Firebase with additional details
             try {
@@ -212,7 +218,7 @@
                     nfc_id: currentNfcId,
                     timestamp: timestamp.toISOString(),
                     status: status,
-                    verification_status: 'id_match'  // Always set to match
+                    verification_status: isMatch ? 'id_match' : 'id_mismatch'
                 });
 
                 // Update UI
@@ -226,15 +232,15 @@
             setTimeout(cleanup, 6000);
         }
 
-        // Update attendance log in UI - Simplified to always show Present
+        // Update attendance log in UI
         function updateAttendanceLog(id, timestamp, status) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="px-6 py-4">${id}</td>
                 <td class="px-6 py-4">${timestamp.toLocaleTimeString()}</td>
                 <td class="px-6 py-4">
-                    <span class="status-badge present">
-                        Present ✅
+                    <span class="status-badge ${status === 'present' ? 'present' : 'proxy'}">
+                        ${status === 'present' ? 'Present ✅' : 'Possible Proxy ❌'}
                     </span>
                 </td>
             `;
